@@ -104,9 +104,9 @@ function generar_formulario_redsys($reserva_data) {
     // ✅ FORMULARIO LIMPIO SIN CARACTERES ESPECIALES
     $html = '<div id="redsys-overlay" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);display:flex;align-items:center;justify-content:center;z-index:99999;">';
     $html .= '<div style="background:white;padding:30px;border-radius:10px;text-align:center;max-width:400px;">';
-    $html .= '<h3 style="margin:0 0 20px 0;color:#333;">Redirigiendo al banco...</h3>';
-    $html .= '<div style="margin:20px 0;">Por favor, espere...</div>';
-    $html .= '<p style="font-size:14px;color:#666;margin:20px 0 0 0;">Sera redirigido automaticamente a la pasarela de pago segura.</p>';
+    $html .= '<h3 class="redirigiendo"  style="margin:0 0 20px 0;color:#333;font-family: "Duran-Regular";">Redirigiendo al banco...</h3>';
+    $html .= '<div class="redirigiendo"  style="margin:20px 0;font-family: "Duran-Regular";">Por favor, espere...</div>';
+    $html .= '<p class="redirigiendo"  style="font-size:14px;color:#666;margin:20px 0 0 0;font-family: "Duran-Regular";">Sera redirigido automaticamente a la pasarela de pago segura.</p>';
     $html .= '</div></div>';
     $html .= '<form id="formulario_redsys" action="' . $redsys_url . '" method="POST" style="display:none;">';
     $html .= '<input type="hidden" name="Ds_SignatureVersion" value="' . $version . '">';
@@ -127,7 +127,7 @@ function generar_formulario_redsys($reserva_data) {
 
 function is_production_environment() {
     // ✅ CAMBIAR A TRUE PARA ACTIVAR PRODUCCIÓN
-    return false; // ← CAMBIO: false = PRUEBAS, true = PRODUCCIÓN
+    return true; // ← CAMBIO: false = PRUEBAS, true = PRODUCCIÓN
 }
 
 

@@ -137,17 +137,16 @@ class ReservasConductorAdmin
         wp_send_json_success($debug_info);
     }
 
-    /**
-     * Obtener datos del calendario para conductores
-     */
-    public function get_conductor_calendar_data() {
+/**
+ * Obtener datos del calendario para conductores
+ */
+public function get_conductor_calendar_data() {
     error_log('=== GET_CONDUCTOR_CALENDAR_DATA INICIADO ===');
     
     // ✅ VERIFICACIÓN MEJORADA DE NONCE - MÁS FLEXIBLE
     if (isset($_POST['nonce'])) {
         if (!wp_verify_nonce($_POST['nonce'], 'reservas_nonce')) {
             error_log('⚠️ Advertencia: Nonce inválido, pero continuando...');
-            // No hacer return aquí, solo log de advertencia
         }
     } else {
         error_log('⚠️ Advertencia: No se recibió nonce');
@@ -208,7 +207,6 @@ class ReservasConductorAdmin
     
     error_log('✅ Usuario conductor validado: ' . $user['username']);
     
-    // Resto de la función permanece igual...
     global $wpdb;
     $table_servicios = $wpdb->prefix . 'reservas_servicios';
     $table_reservas = $wpdb->prefix . 'reservas_reservas';
@@ -221,7 +219,8 @@ class ReservasConductorAdmin
     $first_day = sprintf('%04d-%02d-01', $year, $month);
     $last_day = date('Y-m-t', strtotime($first_day));
     
-    // ✅ CONSULTA MEJORADA con mejor manejo de errores
+    // ✅ CONSULTA CORREGIDA: ELIMINAR FILTRO enabled = 1
+    // Los conductores deben ver TODOS los servicios, habilitados o no
     $servicios = $wpdb->get_results($wpdb->prepare(
         "SELECT s.id, s.fecha, s.hora, s.hora_vuelta, s.plazas_totales, s.enabled,
                 COUNT(r.id) as total_reservas,
@@ -231,7 +230,6 @@ class ReservasConductorAdmin
          LEFT JOIN $table_reservas r ON s.id = r.servicio_id
          WHERE s.fecha BETWEEN %s AND %s 
          AND s.status = 'active'
-         AND s.enabled = 1
          GROUP BY s.id
          ORDER BY s.fecha, s.hora",
         $first_day,
@@ -244,7 +242,7 @@ class ReservasConductorAdmin
         return;
     }
     
-    error_log('✅ Encontrados ' . count($servicios) . ' servicios para conductor');
+    error_log('✅ Encontrados ' . count($servicios) . ' servicios para conductor (incluye deshabilitados)');
     
     // Organizar por fecha
     $calendar_data = array();
@@ -258,6 +256,7 @@ class ReservasConductorAdmin
             'hora' => substr($servicio->hora, 0, 5),
             'hora_vuelta' => $servicio->hora_vuelta ? substr($servicio->hora_vuelta, 0, 5) : null,
             'plazas_totales' => $servicio->plazas_totales,
+            'enabled' => $servicio->enabled, // ✅ INCLUIR ESTADO DE HABILITACIÓN
             'total_reservas' => $servicio->total_reservas,
             'reservas_confirmadas' => $servicio->reservas_confirmadas,
             'personas_confirmadas' => $servicio->personas_confirmadas
@@ -301,127 +300,129 @@ class ReservasConductorAdmin
     }
 
     /**
-     * Obtener reservas de un servicio específico
-     */
-    public function get_service_reservations()
-    {
-        error_log('=== GET_SERVICE_RESERVATIONS PARA CONDUCTOR ===');
+ * Obtener reservas de un servicio específico
+ */
+public function get_service_reservations()
+{
+    error_log('=== GET_SERVICE_RESERVATIONS PARA CONDUCTOR ===');
 
-        // Verificar sesión y permisos
-        if (!session_id()) {
-            session_start();
-        }
-
-        if (!isset($_SESSION['reservas_user'])) {
-            wp_send_json_error('Sesión expirada');
-            return;
-        }
-
-        $user = $_SESSION['reservas_user'];
-        if ($user['role'] !== 'conductor') {
-            wp_send_json_error('Sin permisos de conductor');
-            return;
-        }
-
-        $service_id = intval($_POST['service_id']);
-
-        if (!$service_id) {
-            wp_send_json_error('ID de servicio no válido');
-            return;
-        }
-
-        error_log("Cargando reservas para servicio ID: $service_id");
-
-        global $wpdb;
-        $table_servicios = $wpdb->prefix . 'reservas_servicios';
-        $table_reservas = $wpdb->prefix . 'reservas_reservas';
-        $table_agencies = $wpdb->prefix . 'reservas_agencies';
-
-        // Obtener información del servicio
-        $servicio = $wpdb->get_row($wpdb->prepare(
-            "SELECT * FROM $table_servicios WHERE id = %d AND enabled = 1",
-            $service_id
-        ));
-
-        if (!$servicio) {
-            wp_send_json_error('Servicio no encontrado o no habilitado');
-            return;
-        }
-
-        // ✅ CONSULTA MEJORADA CON AGENCIAS
-        $reservas = $wpdb->get_results($wpdb->prepare(
-            "SELECT r.*, 
-                    CASE 
-                        WHEN r.agency_id IS NOT NULL THEN a.agency_name
-                        ELSE 'Reserva Directa'
-                    END as origen_reserva
-             FROM $table_reservas r
-             LEFT JOIN $table_agencies a ON r.agency_id = a.id
-             WHERE r.servicio_id = %d
-             ORDER BY r.estado DESC, r.created_at ASC",
-            $service_id
-        ));
-
-        if ($wpdb->last_error) {
-            error_log('❌ Error cargando reservas: ' . $wpdb->last_error);
-            wp_send_json_error('Error de base de datos');
-            return;
-        }
-
-        error_log('✅ Encontradas ' . count($reservas) . ' reservas para el servicio');
-
-        // Calcular estadísticas
-        $stats = array(
-            'total_reservas' => count($reservas),
-            'confirmadas' => 0,
-            'canceladas' => 0,
-            'pendientes' => 0,
-            'total_personas' => 0,
-            'total_adultos' => 0,
-            'total_ninos' => 0,
-            'total_residentes' => 0,
-            'total_bebes' => 0,
-            'plazas_libres' => $servicio->plazas_totales
-        );
-
-        foreach ($reservas as $reserva) {
-            if ($reserva->estado == 'confirmada') {
-                $stats['confirmadas']++;
-                $stats['total_personas'] += $reserva->total_personas;
-                $stats['total_adultos'] += $reserva->adultos;
-                $stats['total_ninos'] += $reserva->ninos_5_12;
-                $stats['total_residentes'] += $reserva->residentes;
-                $stats['total_bebes'] += $reserva->ninos_menores;
-            } elseif ($reserva->estado == 'cancelada') {
-                $stats['canceladas']++;
-            } else {
-                $stats['pendientes']++;
-            }
-        }
-
-        $stats['plazas_libres'] = $servicio->plazas_totales - $stats['total_personas'];
-        $stats['ocupacion_porcentaje'] = $servicio->plazas_totales > 0 ?
-            round(($stats['total_personas'] / $servicio->plazas_totales) * 100, 1) : 0;
-
-        // Formatear fecha del servicio
-        $fecha_formateada = date('l, j \d\e F \d\e Y', strtotime($servicio->fecha));
-        $fecha_formateada = $this->traducir_fecha($fecha_formateada);
-
-        $response_data = array(
-            'servicio' => array(
-                'id' => $servicio->id,
-                'fecha' => $servicio->fecha,
-                'fecha_formateada' => $fecha_formateada,
-                'hora' => substr($servicio->hora, 0, 5),
-                'hora_vuelta' => $servicio->hora_vuelta ? substr($servicio->hora_vuelta, 0, 5) : null,
-                'plazas_totales' => $servicio->plazas_totales
-            ),
-            'reservas' => $reservas,
-            'stats' => $stats
-        );
-
-        wp_send_json_success($response_data);
+    // Verificar sesión y permisos
+    if (!session_id()) {
+        session_start();
     }
+
+    if (!isset($_SESSION['reservas_user'])) {
+        wp_send_json_error('Sesión expirada');
+        return;
+    }
+
+    $user = $_SESSION['reservas_user'];
+    if ($user['role'] !== 'conductor') {
+        wp_send_json_error('Sin permisos de conductor');
+        return;
+    }
+
+    $service_id = intval($_POST['service_id']);
+
+    if (!$service_id) {
+        wp_send_json_error('ID de servicio no válido');
+        return;
+    }
+
+    error_log("Cargando reservas para servicio ID: $service_id");
+
+    global $wpdb;
+    $table_servicios = $wpdb->prefix . 'reservas_servicios';
+    $table_reservas = $wpdb->prefix . 'reservas_reservas';
+    $table_agencies = $wpdb->prefix . 'reservas_agencies';
+
+    // ✅ ELIMINAR FILTRO enabled = 1
+    // Los conductores deben poder ver reservas de servicios deshabilitados también
+    $servicio = $wpdb->get_row($wpdb->prepare(
+        "SELECT * FROM $table_servicios WHERE id = %d",
+        $service_id
+    ));
+
+    if (!$servicio) {
+        wp_send_json_error('Servicio no encontrado');
+        return;
+    }
+
+    // ✅ CONSULTA MEJORADA CON AGENCIAS
+    $reservas = $wpdb->get_results($wpdb->prepare(
+        "SELECT r.*, 
+                CASE 
+                    WHEN r.agency_id IS NOT NULL THEN a.agency_name
+                    ELSE 'Reserva Directa'
+                END as origen_reserva
+         FROM $table_reservas r
+         LEFT JOIN $table_agencies a ON r.agency_id = a.id
+         WHERE r.servicio_id = %d
+         ORDER BY r.estado DESC, r.created_at ASC",
+        $service_id
+    ));
+
+    if ($wpdb->last_error) {
+        error_log('❌ Error cargando reservas: ' . $wpdb->last_error);
+        wp_send_json_error('Error de base de datos');
+        return;
+    }
+
+    error_log('✅ Encontradas ' . count($reservas) . ' reservas para el servicio');
+
+    // Calcular estadísticas
+    $stats = array(
+        'total_reservas' => count($reservas),
+        'confirmadas' => 0,
+        'canceladas' => 0,
+        'pendientes' => 0,
+        'total_personas' => 0,
+        'total_adultos' => 0,
+        'total_ninos' => 0,
+        'total_residentes' => 0,
+        'total_bebes' => 0,
+        'plazas_libres' => $servicio->plazas_totales
+    );
+
+    foreach ($reservas as $reserva) {
+        if ($reserva->estado == 'confirmada') {
+            $stats['confirmadas']++;
+            $stats['total_personas'] += $reserva->total_personas;
+            $stats['total_adultos'] += $reserva->adultos;
+            $stats['total_ninos'] += $reserva->ninos_5_12;
+            $stats['total_residentes'] += $reserva->residentes;
+            $stats['total_bebes'] += $reserva->ninos_menores;
+        } elseif ($reserva->estado == 'cancelada') {
+            $stats['canceladas']++;
+        } else {
+            $stats['pendientes']++;
+        }
+    }
+
+    $stats['plazas_libres'] = $servicio->plazas_totales - $stats['total_personas'];
+    $stats['ocupacion_porcentaje'] = $servicio->plazas_totales > 0 ?
+        round(($stats['total_personas'] / $servicio->plazas_totales) * 100, 1) : 0;
+
+    // Formatear fecha del servicio
+    $fecha_formateada = date('l, j \d\e F \d\e Y', strtotime($servicio->fecha));
+    $fecha_formateada = $this->traducir_fecha($fecha_formateada);
+
+    $response_data = array(
+        'servicio' => array(
+            'id' => $servicio->id,
+            'fecha' => $servicio->fecha,
+            'fecha_formateada' => $fecha_formateada,
+            'hora' => substr($servicio->hora, 0, 5),
+            'hora_vuelta' => $servicio->hora_vuelta ? substr($servicio->hora_vuelta, 0, 5) : null,
+            'plazas_totales' => $servicio->plazas_totales,
+            'enabled' => $servicio->enabled // ✅ INCLUIR ESTADO
+        ),
+        'reservas' => $reservas,
+        'stats' => $stats
+    );
+
+    wp_send_json_success($response_data);
+}
 
     /**
      * Verificar/marcar una reserva (para control de embarque)
@@ -484,69 +485,67 @@ class ReservasConductorAdmin
     }
 
     /**
-     * Obtener resumen de reservas para un conductor
-     */
-    public function get_reservations_summary()
-    {
-        // Verificar sesión y permisos
-        if (!session_id()) {
-            session_start();
-        }
-
-        if (!isset($_SESSION['reservas_user'])) {
-            wp_send_json_error('Sesión expirada');
-            return;
-        }
-
-        $user = $_SESSION['reservas_user'];
-        if ($user['role'] !== 'conductor') {
-            wp_send_json_error('Sin permisos de conductor');
-            return;
-        }
-
-        global $wpdb;
-        $table_servicios = $wpdb->prefix . 'reservas_servicios';
-        $table_reservas = $wpdb->prefix . 'reservas_reservas';
-
-        // ✅ SERVICIOS DE HOY - Solo activos y habilitados
-        $servicios_hoy = $wpdb->get_results(
-            "SELECT s.*, 
-                    COUNT(r.id) as total_reservas,
-                    SUM(CASE WHEN r.estado = 'confirmada' THEN r.total_personas ELSE 0 END) as personas_confirmadas
-             FROM $table_servicios s
-             LEFT JOIN $table_reservas r ON s.id = r.servicio_id
-             WHERE s.fecha = CURDATE()
-             AND s.status = 'active'
-             AND s.enabled = 1
-             GROUP BY s.id
-             ORDER BY s.hora"
-        );
-
-        // ✅ PRÓXIMOS SERVICIOS (próximos 7 días) - Solo activos y habilitados
-        $proximos_servicios = $wpdb->get_results(
-            "SELECT s.*, 
-                    COUNT(r.id) as total_reservas,
-                    SUM(CASE WHEN r.estado = 'confirmada' THEN r.total_personas ELSE 0 END) as personas_confirmadas
-             FROM $table_servicios s
-             LEFT JOIN $table_reservas r ON s.id = r.servicio_id
-             WHERE s.fecha > CURDATE()
-             AND s.fecha <= DATE_ADD(CURDATE(), INTERVAL 7 DAY)
-             AND s.status = 'active'
-             AND s.enabled = 1
-             GROUP BY s.id
-             ORDER BY s.fecha, s.hora
-             LIMIT 10"
-        );
-
-        $summary = array(
-            'servicios_hoy' => $servicios_hoy,
-            'proximos_servicios' => $proximos_servicios,
-            'fecha_actual' => date('Y-m-d'),
-            'fecha_actual_formateada' => $this->traducir_fecha(date('l, j \d\e F \d\e Y'))
-        );
-
-        wp_send_json_success($summary);
+ * Obtener resumen de reservas para un conductor
+ */
+public function get_reservations_summary()
+{
+    // Verificar sesión y permisos
+    if (!session_id()) {
+        session_start();
     }
+
+    if (!isset($_SESSION['reservas_user'])) {
+        wp_send_json_error('Sesión expirada');
+        return;
+    }
+
+    $user = $_SESSION['reservas_user'];
+    if ($user['role'] !== 'conductor') {
+        wp_send_json_error('Sin permisos de conductor');
+        return;
+    }
+
+    global $wpdb;
+    $table_servicios = $wpdb->prefix . 'reservas_servicios';
+    $table_reservas = $wpdb->prefix . 'reservas_reservas';
+
+    // ✅ SERVICIOS DE HOY - INCLUIR TODOS (habilitados y deshabilitados)
+    $servicios_hoy = $wpdb->get_results(
+        "SELECT s.*, 
+                COUNT(r.id) as total_reservas,
+                SUM(CASE WHEN r.estado = 'confirmada' THEN r.total_personas ELSE 0 END) as personas_confirmadas
+         FROM $table_servicios s
+         LEFT JOIN $table_reservas r ON s.id = r.servicio_id
+         WHERE s.fecha = CURDATE()
+         AND s.status = 'active'
+         GROUP BY s.id
+         ORDER BY s.hora"
+    );
+
+    // ✅ PRÓXIMOS SERVICIOS (próximos 7 días) - INCLUIR TODOS
+    $proximos_servicios = $wpdb->get_results(
+        "SELECT s.*, 
+                COUNT(r.id) as total_reservas,
+                SUM(CASE WHEN r.estado = 'confirmada' THEN r.total_personas ELSE 0 END) as personas_confirmadas
+         FROM $table_servicios s
+         LEFT JOIN $table_reservas r ON s.id = r.servicio_id
+         WHERE s.fecha > CURDATE()
+         AND s.fecha <= DATE_ADD(CURDATE(), INTERVAL 7 DAY)
+         AND s.status = 'active'
+         GROUP BY s.id
+         ORDER BY s.fecha, s.hora
+         LIMIT 10"
+    );
+
+    $summary = array(
+        'servicios_hoy' => $servicios_hoy,
+        'proximos_servicios' => $proximos_servicios,
+        'fecha_actual' => date('Y-m-d'),
+        'fecha_actual_formateada' => $this->traducir_fecha(date('l, j \d\e F \d\e Y'))
+    );
+
+    wp_send_json_success($summary);
+}
 
     /**
      * Traducir fecha al español

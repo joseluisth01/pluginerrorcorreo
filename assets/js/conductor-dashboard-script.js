@@ -282,6 +282,17 @@ function loadConductorCalendarSection() {
             font-weight: bold;
             color: #28a745;
         }
+
+        .conductor-service-item.service-disabled {
+    background: #6c757d !important;
+    opacity: 0.7;
+    border-left: 3px solid #dc3545;
+}
+
+.conductor-service-item.service-disabled:hover {
+    background: #5a6268 !important;
+    opacity: 0.9;
+}
         
         .stat-label {
             font-size: 12px;
@@ -612,29 +623,33 @@ function renderConductorCalendar() {
     }
     
     // Días del mes actual
-    for (let day = 1; day <= daysInMonth; day++) {
-        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-        const hasServices = conductorServicesData[dateStr] && conductorServicesData[dateStr].length > 0;
-        
-        calendarHTML += `<div class="conductor-calendar-day ${hasServices ? 'has-services' : ''}">
-            <div class="conductor-day-number">${day}</div>`;
-        
-        if (hasServices) {
-            conductorServicesData[dateStr].forEach(service => {
-                const reservationCount = service.reservas_confirmadas || 0;
-                const totalPersonas = service.personas_confirmadas || 0;
-                
-                calendarHTML += `<div class="conductor-service-item ${reservationCount > 0 ? 'has-reservations' : ''}" 
-                    onclick="showServiceReservations(${service.id}, '${dateStr}', '${service.hora}')">
-                    <span class="service-time">${service.hora}</span>
-                    <span class="service-count">${reservationCount} reservas</span>
-                    <span class="service-count">${totalPersonas} personas</span>
-                </div>`;
-            });
-        }
-        
-        calendarHTML += '</div>';
+for (let day = 1; day <= daysInMonth; day++) {
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const hasServices = conductorServicesData[dateStr] && conductorServicesData[dateStr].length > 0;
+    
+    calendarHTML += `<div class="conductor-calendar-day ${hasServices ? 'has-services' : ''}">
+        <div class="conductor-day-number">${day}</div>`;
+    
+    if (hasServices) {
+        conductorServicesData[dateStr].forEach(service => {
+            const reservationCount = service.reservas_confirmadas || 0;
+            const totalPersonas = service.personas_confirmadas || 0;
+            
+            // ✅ CLASE ADICIONAL SI EL SERVICIO ESTÁ DESHABILITADO
+            const disabledClass = service.enabled == 0 ? 'service-disabled' : '';
+            
+            calendarHTML += `<div class="conductor-service-item ${reservationCount > 0 ? 'has-reservations' : ''} ${disabledClass}" 
+                onclick="showServiceReservations(${service.id}, '${dateStr}', '${service.hora}')">
+                <span class="service-time">${service.hora}</span>
+                <span class="service-count">${reservationCount} reservas</span>
+                <span class="service-count">${totalPersonas} personas</span>
+                ${service.enabled == 0 ? '<span class="service-count" style="color: #dc3545; font-weight: bold;">🔒 DESHABILITADO</span>' : ''}
+            </div>`;
+        });
     }
+    
+    calendarHTML += '</div>';
+}
     
     // Días del siguiente mes (para completar la grilla)
     const totalCells = Math.ceil((firstDayOfWeek + daysInMonth) / 7) * 7;

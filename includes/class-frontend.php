@@ -330,7 +330,7 @@ class ReservasFrontend
                                         <p>*NIÑOS (Menores de 5 años): 0€ (viajan gratis).</p>
                                         <p>*RESIDENTES en Córdoba: 50% de descuento.</p>
                                         <p>*Los RESIDENTES deben llevar un documento que lo acredite y presentarlo en persona.</p>
-                                        <p>*En reservas de más de 10 personas se aplica DESCUENTO POR GRUPO.</p>
+                                        <p>*En reservas de más de 20 personas se aplica DESCUENTO POR GRUPO.</p>
                                     </div>
 
                                 </div>

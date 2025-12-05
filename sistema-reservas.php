@@ -160,7 +160,6 @@ class SistemaReservas
             $path = RESERVAS_PLUGIN_PATH . $file;
             if (file_exists($path)) {
                 require_once $path;
-                
             } else {
                 error_log("❌ RESERVAS ERROR: No se pudo cargar $file");
             }
@@ -501,7 +500,7 @@ class SistemaReservas
 
 
         $table_pending = $wpdb->prefix . 'reservas_pending_orders';
-$sql_pending = "CREATE TABLE $table_pending (
+        $sql_pending = "CREATE TABLE $table_pending (
     id mediumint(9) NOT NULL AUTO_INCREMENT,
     order_id varchar(20) NOT NULL UNIQUE,
     order_data LONGTEXT NOT NULL,
@@ -511,8 +510,8 @@ $sql_pending = "CREATE TABLE $table_pending (
     KEY created_at (created_at)
 ) $charset_collate;";
 
-require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
-dbDelta($sql_pending);
+        require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+        dbDelta($sql_pending);
 
         // Tabla de reservas rápidas (tracking)
         $table_rapidas = $wpdb->prefix . 'reservas_rapidas';
@@ -1133,10 +1132,9 @@ function confirmacion_reserva_shortcode()
         }
 
         .additional-services-section {
-
-            padding: 50px;
+            background-color: #871727;
+            padding: 50px 0px 50px 0px;
             text-align: center;
-            border-radius: 20px;
             box-shadow: 0px 0px 15px 0px rgba(46, 45, 44, .2);
             backdrop-filter: blur(3px);
             margin-bottom: 50px;
@@ -1210,6 +1208,7 @@ function confirmacion_reserva_shortcode()
             overflow: hidden;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
             transition: transform 0.3s ease, box-shadow 0.3s ease;
+            padding: 0px !important;
         }
 
         .service-card:hover {
@@ -1385,7 +1384,7 @@ function confirmacion_reserva_shortcode()
             color: white;
             text-align: center;
             margin: 0;
-            padding: 15px;
+            padding: 5px;
             font-size: 24px;
             font-weight: bold;
             letter-spacing: 2px;
@@ -1404,7 +1403,7 @@ function confirmacion_reserva_shortcode()
         }
 
         .thank-you-message {
-            margin-bottom: 40px;
+            margin-bottom: 20px;
         }
 
         .thank-you-message p {
@@ -1515,6 +1514,11 @@ function confirmacion_reserva_shortcode()
                 max-width: none;
             }
 
+            .service-card{
+                max-width: 100% !important;
+            }
+
+
             .success-banner {
                 padding: 0px;
             }
@@ -1544,11 +1548,7 @@ function confirmacion_reserva_shortcode()
 
         <div class="content-section">
             <div class="thank-you-message">
-                <p>En <strong>Autocares Bravo</strong> estamos agradecidos por tu confianza para el viaje a las ruinas de <strong>Medina Azahara</strong>. Nos hace ilusión acompañarte: tú disfruta de la experiencia, nosotros cuidamos del trayecto.</p>
-            </div>
-
-            <div class="remember-text">
-                Recuerda presentarte en la parada 10 minutos antes de la salida.
+                <p>Agradecemos tu confianza. <strong>Recuerda presentarte en la parada 10 minutos antes de la salida.</strong></p>
             </div>
 
             <div style="display:none !important" class="arrival-info" id="arrival-info">
@@ -1662,7 +1662,7 @@ function confirmacion_reserva_shortcode()
             const mainContainer = document.querySelector('.confirmacion-container.container');
             if (mainContainer) {
                 const errorHtml = `
-            <div class="additional-services-section container" style="padding: 40px; text-align: center;">
+            <div class="additional-services-section" style="padding: 40px; text-align: center;">
                 <h2 class="horarios-titulo" style="color: #E74C3C;">Error cargando servicios</h2>
                 <p style="font-size: 16px; color: #666; margin-top: 15px;">
                     Hubo un problema al cargar los servicios de visitas guiadas. Por favor, recarga la página.
@@ -1710,21 +1710,17 @@ function confirmacion_reserva_shortcode()
             const otros = services.filter(s => parseInt(s.orden_prioridad) !== 1);
 
             let servicesHtml = `
-        <div class="additional-services-section container">
-            <h2 class="horarios-titulo">Reserva aquí tu visita guiada a Medina Azahara</h2>
-            <p class="services-subtitle">
-                Completa la experiencia con un <strong>tour guiado por expertos</strong> y descubre cada secreto de Medina Azahara.
-            </p>
-            <p class="services-description">
-                Elige la opción que más se adapte a ti entre nuestras empresas colaboradoras... 
-                <strong>¡Y disfruta de una experiencia 100 % inmersiva!</strong>
+        <div class="additional-services-section">
+            <h2 class="horarios-titulo" style="color:white">Reserva aquí tu visita guiada a Medina Azahara</h2>
+            <p class="services-subtitle" style="color:white !important; margin-bottom:30px;">
+                Completa la experiencia con un tour guiado por expertos y descubre cada secreto de Medina Azahara. Elige la opción que más se adapte a ti.
             </p>
     `;
 
             // Si hay servicio destacado (prioridad 1)
             if (destacado) {
                 servicesHtml += `
-            <div class="service-card service-card-destacado" style="grid-column: 1 / -1; margin-bottom: 30px;" data-service-id="${destacado.id}">
+            <div class="service-card service-card-destacado container" style="grid-column: 1 / -1; margin-bottom: 30px;" data-service-id="${destacado.id}">
                 ${destacado.portada_url ? `
                     <div class="service-image" style="height: 250px;">
                         <img src="${destacado.portada_url}" alt="${destacado.titulo || destacado.agency_name}">
@@ -2748,9 +2744,9 @@ function handle_redsys_notification()
     error_log('POST: ' . print_r($_POST, true));
     error_log('PHP Version: ' . PHP_VERSION);
     error_log('Memory Limit: ' . ini_get('memory_limit'));
-    
+
     // NO iniciar sesión aquí - causa problemas con headers
-    
+
     try {
         $params = $_POST['Ds_MerchantParameters'] ?? '';
         $signature = $_POST['Ds_Signature'] ?? '';
@@ -2766,7 +2762,7 @@ function handle_redsys_notification()
         }
 
         $redsys = new RedsysAPI();
-        
+
         try {
             $decoded = $redsys->getParametersFromResponse($params);
             error_log('✅ Parámetros decodificados correctamente');
@@ -2813,7 +2809,7 @@ function handle_redsys_notification()
         // Procesar pago
         try {
             $ok = process_successful_payment($order_id, $decoded);
-            
+
             if ($ok) {
                 error_log("✅ Reserva procesada correctamente - Order: $order_id");
                 status_header(200);
@@ -2823,14 +2819,12 @@ function handle_redsys_notification()
                 status_header(500);
                 echo 'ERROR: Processing failed';
             }
-            
         } catch (Exception $e) {
             error_log("❌ EXCEPCIÓN procesando pago: " . $e->getMessage());
             error_log("Stack trace: " . $e->getTraceAsString());
             status_header(500);
             echo 'ERROR: Exception - ' . $e->getMessage();
         }
-
     } catch (Exception $e) {
         error_log("❌ EXCEPCIÓN GENERAL en notificación: " . $e->getMessage());
         error_log("Stack trace: " . $e->getTraceAsString());
@@ -3357,62 +3351,64 @@ function force_create_visitas_table()
 
 
 add_action('wp', 'schedule_lost_payments_check');
-function schedule_lost_payments_check() {
+function schedule_lost_payments_check()
+{
     if (!wp_next_scheduled('check_lost_payments')) {
         wp_schedule_event(time(), 'hourly', 'check_lost_payments');
     }
 }
 
 add_action('check_lost_payments', 'check_and_recover_lost_payments');
-function check_and_recover_lost_payments() {
+function check_and_recover_lost_payments()
+{
     error_log('=== VERIFICANDO PAGOS PERDIDOS ===');
-    
+
     global $wpdb;
     $table_pending = $wpdb->prefix . 'reservas_pending_orders';
-    
+
     // Buscar pedidos pendientes de las últimas 48 horas
     $pending_orders = $wpdb->get_results(
         "SELECT * FROM $table_pending 
          WHERE created_at >= DATE_SUB(NOW(), INTERVAL 48 HOUR)
          ORDER BY created_at DESC"
     );
-    
+
     if (empty($pending_orders)) {
         error_log('ℹ️ No hay pedidos pendientes');
         return;
     }
-    
+
     error_log('📋 Encontrados ' . count($pending_orders) . ' pedidos pendientes');
-    
+
     foreach ($pending_orders as $pending) {
         $order_id = $pending->order_id;
         $reserva_data = json_decode($pending->order_data, true);
-        
+
         // Verificar si ya existe la reserva
         $table_reservas = $wpdb->prefix . 'reservas_reservas';
         $exists = $wpdb->get_var($wpdb->prepare(
             "SELECT id FROM $table_reservas WHERE redsys_order_id = %s",
             $order_id
         ));
-        
+
         if ($exists) {
             error_log("✅ Reserva ya existe para order: $order_id - Limpiando");
             $wpdb->delete($table_pending, array('order_id' => $order_id));
             continue;
         }
-        
+
         // ✅ AQUÍ PODRÍAS CONSULTAR A REDSYS SI EL PAGO SE COMPLETÓ
         // Por ahora solo enviamos alerta
         error_log("⚠️ Order pendiente sin reserva: $order_id");
-        
+
         // Enviar alerta si han pasado más de 2 horas
         $created_time = strtotime($pending->created_at);
         $hours_passed = (time() - $created_time) / 3600;
-        
+
         if ($hours_passed > 2) {
         }
     }
-    
+
     // Limpiar pedidos muy antiguos (más de 7 días)
     $wpdb->query(
         "DELETE FROM $table_pending 
@@ -3429,86 +3425,87 @@ function test_email_sending_debug()
     if (!current_user_can('administrator')) {
         wp_die('Sin permisos');
     }
-    
+
     error_log('=== PRUEBA DE ENVÍO DE EMAIL ===');
-    
+
     // Obtener configuración
     if (!class_exists('ReservasConfigurationAdmin')) {
         require_once RESERVAS_PLUGIN_PATH . 'includes/class-configuration-admin.php';
     }
-    
+
     $config = array(
         'email_remitente' => ReservasConfigurationAdmin::get_config('email_remitente'),
         'nombre_remitente' => ReservasConfigurationAdmin::get_config('nombre_remitente'),
         'email_reservas' => ReservasConfigurationAdmin::get_config('email_reservas')
     );
-    
+
     error_log('Configuración: ' . print_r($config, true));
-    
+
     // Probar envío a admin
     $to_admin = $config['email_reservas'];
     $subject_admin = 'Prueba de Email - Admin';
     $message_admin = 'Este es un email de prueba enviado al administrador.';
-    
+
     $headers = array(
         'Content-Type: text/html; charset=UTF-8',
         'From: ' . $config['nombre_remitente'] . ' <' . $config['email_remitente'] . '>'
     );
-    
+
     $sent_admin = wp_mail($to_admin, $subject_admin, $message_admin, $headers);
-    
+
     echo '<h2>Prueba de Envío de Emails</h2>';
     echo '<p><strong>Email remitente:</strong> ' . $config['email_remitente'] . '</p>';
     echo '<p><strong>Nombre remitente:</strong> ' . $config['nombre_remitente'] . '</p>';
     echo '<hr>';
     echo '<h3>Envío a Admin (' . $to_admin . ')</h3>';
     echo '<p><strong>Resultado:</strong> ' . ($sent_admin ? '✅ ENVIADO' : '❌ ERROR') . '</p>';
-    
+
     if (!$sent_admin) {
         global $phpmailer;
         if (isset($phpmailer)) {
             echo '<p><strong>Error:</strong> ' . $phpmailer->ErrorInfo . '</p>';
         }
     }
-    
+
     // Probar envío a cliente de prueba
     $test_email = $_GET['test_email'] ?? 'test@example.com';
     echo '<hr>';
     echo '<h3>Envío a Cliente de Prueba (' . $test_email . ')</h3>';
-    
+
     $subject_test = 'Prueba de Email - Cliente';
     $message_test = 'Este es un email de prueba enviado a un cliente.';
-    
+
     $sent_test = wp_mail($test_email, $subject_test, $message_test, $headers);
-    
+
     echo '<p><strong>Resultado:</strong> ' . ($sent_test ? '✅ ENVIADO' : '❌ ERROR') . '</p>';
-    
+
     if (!$sent_test) {
         global $phpmailer;
         if (isset($phpmailer)) {
             echo '<p><strong>Error:</strong> ' . $phpmailer->ErrorInfo . '</p>';
         }
     }
-    
+
     echo '<hr>';
     echo '<h3>Información del Servidor</h3>';
     echo '<p><strong>mail() disponible:</strong> ' . (function_exists('mail') ? '✅ SÍ' : '❌ NO') . '</p>';
     echo '<p><strong>PHP Version:</strong> ' . PHP_VERSION . '</p>';
     echo '<p><strong>Servidor:</strong> ' . ($_SERVER['SERVER_SOFTWARE'] ?? 'Desconocido') . '</p>';
-    
+
     exit;
 }
 
 
 add_action('delete_pending_order', 'cleanup_pending_order');
-function cleanup_pending_order($order_id) {
+function cleanup_pending_order($order_id)
+{
     delete_option('pending_order_' . $order_id);
     delete_transient('redsys_order_' . $order_id);
-    
+
     global $wpdb;
     $table_pending = $wpdb->prefix . 'reservas_pending_orders';
     $wpdb->delete($table_pending, array('order_id' => $order_id));
-    
+
     error_log("🧹 Limpieza completada para order: $order_id");
 }
 
@@ -3516,7 +3513,8 @@ function cleanup_pending_order($order_id) {
 // ✅ AÑADIR CAMPO REDSYS_ORDER_ID A TABLA DE VISITAS
 add_action('admin_init', 'add_redsys_order_id_to_visitas');
 
-function add_redsys_order_id_to_visitas() {
+function add_redsys_order_id_to_visitas()
+{
     global $wpdb;
     $table_visitas = $wpdb->prefix . 'reservas_visitas';
 
@@ -3533,7 +3531,8 @@ function add_redsys_order_id_to_visitas() {
 // ✅ PROCESAR RETORNO DE REDSYS PARA VISITAS
 add_action('template_redirect', 'check_redsys_return_url_visitas');
 
-function check_redsys_return_url_visitas() {
+function check_redsys_return_url_visitas()
+{
     // Solo ejecutar en la página de confirmación de visitas
     if (!is_page('confirmacion-reserva-visita')) {
         return;
@@ -3563,7 +3562,7 @@ function check_redsys_return_url_visitas() {
             if (!function_exists('recuperar_datos_pedido')) {
                 require_once RESERVAS_PLUGIN_PATH . 'includes/class-redsys-handler.php';
             }
-            
+
             $reserva_data = recuperar_datos_pedido($order);
 
             if (!$reserva_data || !isset($reserva_data['is_visita'])) {
@@ -3579,7 +3578,7 @@ function check_redsys_return_url_visitas() {
 
             if ($result) {
                 $localizador = get_transient('order_to_localizador_visita_' . $order);
-                
+
                 if ($localizador) {
                     error_log("✅ Visita procesada desde URL con localizador: $localizador");
                     $redirect_url = add_query_arg('localizador', $localizador, home_url('/confirmacion-reserva-visita/'));
@@ -3649,11 +3648,11 @@ function force_update_services_table_manual()
 add_action('send_grouped_admin_notifications', array('ReservasEmailService', 'send_grouped_admin_notifications'));
 
 // ✅ Hook para alertas retrasadas
-add_action('send_delayed_email_alert', function($email, $localizador) {
+add_action('send_delayed_email_alert', function ($email, $localizador) {
     if (!class_exists('ReservasEmailService')) {
         require_once RESERVAS_PLUGIN_PATH . 'includes/class-email-service.php';
     }
-    
+
     // Usar método estático correcto
     $reflection = new ReflectionClass('ReservasEmailService');
     $method = $reflection->getMethod('send_email_failure_alert');

@@ -72,6 +72,17 @@
     object-fit: cover;
 }
 
+#visita-personal-data-form{
+    gap: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+#visita-personal-data-form .form-group{
+    width: 48%;
+}
+
 .hero-overlay {
     position: absolute;
     bottom: 0;
@@ -82,6 +93,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    background-color: #00000030;
+    width: 100%;
 }
 
 .service-hero-title {
@@ -273,6 +286,7 @@ display: flex
     justify-content: space-between;
     align-items: center;
     font-family: 'Duran-Regular';
+    margin-top: 20px;
 }
 
 .total-price-visita .label {
@@ -369,11 +383,29 @@ display: flex
     .details-grid-visita {
         grid-template-columns: 1fr;
     }
+
+    .info-notes img{
+        display: none;
+    }
+
+    #service-title{
+        max-width: 100% !important;
+        font-size: 44px !important;
+    }
+
+    .precioss{
+        flex-direction: column;
+    }
+
+    #visita-personal-data-form .form-group{
+        width: 100%;
+    }
     
     .info-row {
-        flex-direction: column;
         gap: 10px;
         text-align: center;
+        width: 100%;
+        padding: 8px;
     }
     
     .complete-btn {

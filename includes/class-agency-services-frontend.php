@@ -79,8 +79,8 @@ class ReservasAgencyServicesFrontend
                 <img style="width:10px !important" src="https://autobusmedinaazahara.com/wp-content/uploads/2025/07/Vector-15.svg" alt="">
                 VOLVER A SERVICIOS
             </button>
-            <div class="hero-overlay container">
-                <h1 id="service-title" class="service-hero-title"></h1>
+            <div class="hero-overlay">
+                <h1 id="service-title" class="service-hero-title container"></h1>
             </div>
         </div>
 
@@ -91,7 +91,7 @@ class ReservasAgencyServicesFrontend
                 <div class="containerdetalles" style="padding:30px 60px;">
 
                     <div class="details-info-box">
-                        <div style="background-color:#DB7461; display:flex; align-items:center; justify-content: space-around; flex-wrap:wrap">
+                        <div class="precioss" style="background-color:#DB7461; display:flex; align-items:center; justify-content: space-around; flex-wrap:wrap">
                             <div class="info-row adultos">
                                 <span class="label">ADULTOS (MAYORES DE 12 AÑOS):</span>
                                 <span class="price" id="precio-adulto-info">-€</span>

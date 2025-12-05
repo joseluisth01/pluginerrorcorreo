@@ -100,9 +100,9 @@ function generar_formulario_redsys($reserva_data) {
     // ✅ FORMULARIO LIMPIO SIN CARACTERES ESPECIALES
     $html = '<div id="redsys-overlay" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);display:flex;align-items:center;justify-content:center;z-index:99999;">';
     $html .= '<div style="background:white;padding:30px;border-radius:10px;text-align:center;max-width:400px;">';
-    $html .= '<h3 style="margin:0 0 20px 0;color:#333;">Redirigiendo al banco...</h3>';
-    $html .= '<div style="margin:20px 0;">Por favor, espere...</div>';
-    $html .= '<p style="font-size:14px;color:#666;margin:20px 0 0 0;">Sera redirigido automaticamente a la pasarela de pago segura.</p>';
+    $html .= '<h3 class="redirigiendo" style="margin:0 0 20px 0;color:#333;font-family: "Duran-Regular";">Redirigiendo al banco...</h3>';
+    $html .= '<div class="redirigiendo"  style="margin:20px 0;font-family: "Duran-Regular";">Por favor, espere...</div>';
+    $html .= '<p class="redirigiendo"  style="font-size:14px;color:#666;margin:20px 0 0 0;font-family: "Duran-Regular";">Sera redirigido automaticamente a la pasarela de pago segura.</p>';
     $html .= '</div></div>';
     $html .= '<form id="formulario_redsys" action="' . $redsys_url . '" method="POST" style="display:none;">';
     $html .= '<input type="hidden" name="Ds_SignatureVersion" value="' . $version . '">';
@@ -122,7 +122,7 @@ function generar_formulario_redsys($reserva_data) {
 }
 
 function is_production_environment() {
-    return false; // PRUEBAS
+    return true; // PRUEBAS
 }
 
 function process_successful_payment($order_id, $params) {
@@ -486,6 +486,9 @@ function enviar_email_confirmacion_visita($reserva_data) {
     }
 
     error_log('=== ENVIANDO EMAILS DE CONFIRMACIÓN DE VISITA ===');
+    error_log('📧 Localizador: ' . ($reserva_data['localizador'] ?? 'N/A'));
+    error_log('📧 Cliente: ' . ($reserva_data['email'] ?? 'N/A'));
+    error_log('📧 Agencia ID: ' . ($reserva_data['agency_id'] ?? 'N/A'));
 
     // ✅ 1. EMAIL AL CLIENTE CON PDF
     $customer_result = ReservasEmailService::send_customer_confirmation($reserva_data);
@@ -496,17 +499,23 @@ function enviar_email_confirmacion_visita($reserva_data) {
         error_log('❌ Error enviando email al cliente de visita: ' . $customer_result['message']);
     }
 
-    // ✅ 2. EMAIL AL ADMINISTRADOR DE VISITAS (email_visitas)
-    $admin_result = ReservasEmailService::send_admin_notification($reserva_data);
+    // ✅ 2. EMAIL INMEDIATO AL SUPER ADMINISTRADOR DE VISITAS (email_visitas)
+    error_log('📧 Intentando enviar email al super admin de visitas...');
+    $admin_result = ReservasEmailService::send_admin_visita_notification_immediate($reserva_data);
 
     if ($admin_result['success']) {
-        error_log('✅ Email enviado al admin de visitas guiadas');
+        error_log('✅ Email enviado INMEDIATAMENTE al super admin de visitas guiadas');
     } else {
-        error_log('❌ Error enviando email al admin de visitas: ' . $admin_result['message']);
+        error_log('❌ Error enviando email al super admin de visitas: ' . $admin_result['message']);
+        
+        // ✅ PROGRAMAR REENVÍO SI FALLÓ
+        wp_schedule_single_event(time() + 300, 'retry_send_admin_visita_notification', array($reserva_data));
+        error_log('🔄 Programado reenvío en 5 minutos');
     }
 
-    // ✅ 3. NUEVO: EMAIL A LA AGENCIA
+    // ✅ 3. EMAIL A LA AGENCIA
     if (!empty($reserva_data['agency_id'])) {
+        error_log('📧 Enviando email a la agencia ID: ' . $reserva_data['agency_id']);
         $agency_result = ReservasEmailService::send_agency_visita_notification($reserva_data);
         
         if ($agency_result['success']) {
